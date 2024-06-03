@@ -386,7 +386,7 @@ where
             &mut self.state.write,
             ansi_escape::wrap_ansi_escape_each_line(
                 &ANSI::BoldPurple,
-                format!("\n# {}\n", buildpack_name.as_ref().trim()),
+                format!("\n## {}\n", buildpack_name.as_ref().trim()),
             ),
         );
 
