@@ -384,11 +384,15 @@ where
     /// This function will transition your buildpack output to [`state::Bullet`].
     #[must_use]
     pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Output<state::Bullet<W>> {
+        if !self.state.write.was_paragraph {
+            writeln_now(&mut self.state.write, "");
+        }
+
         writeln_now(
             &mut self.state.write,
             ansi_escape::wrap_ansi_escape_each_line(
                 &ANSI::BoldPurple,
-                format!("\n## {}\n", buildpack_name.as_ref().trim()),
+                format!("## {}\n", buildpack_name.as_ref().trim()),
             ),
         );
 
@@ -443,11 +447,15 @@ where
     /// Outputs an H2 header
     #[must_use]
     pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Output<state::Bullet<W>> {
+        if !self.state.write.was_paragraph {
+            writeln_now(&mut self.state.write, "");
+        }
+
         writeln_now(
             &mut self.state.write,
             ansi_escape::wrap_ansi_escape_each_line(
                 &ANSI::BoldPurple,
-                format!("\n## {}\n", buildpack_name.as_ref().trim()),
+                format!("## {}\n", buildpack_name.as_ref().trim()),
             ),
         );
 
@@ -768,6 +776,48 @@ mod test {
     use indoc::formatdoc;
     use libcnb_test::assert_contains;
     use std::fs::File;
+
+    #[test]
+    fn double_h2_h2_newlines() {
+        let writer = Vec::new();
+        let output = Output::new(writer).h2("Header 2").h2("Header 2");
+
+        let io = output.done();
+        let expected = formatdoc! {"
+
+            ## Header 2
+
+            ## Header 2
+
+            - Done (finished in < 0.1s)
+        "};
+
+        assert_eq!(
+            expected,
+            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
+        )
+    }
+
+    #[test]
+    fn double_h1_h2_newlines() {
+        let writer = Vec::new();
+        let output = Output::new(writer).h1("Header 1").h2("Header 2");
+
+        let io = output.done();
+        let expected = formatdoc! {"
+
+            # Header 1
+
+            ## Header 2
+
+            - Done (finished in < 0.1s)
+        "};
+
+        assert_eq!(
+            expected,
+            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
+        )
+    }
 
     #[test]
     fn stream_with() {
