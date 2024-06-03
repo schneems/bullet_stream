@@ -2,6 +2,13 @@
 name = "bullet_stream"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Bulletproof printing for bullet point text"
+keywords = ["script", "buildpack", "output", "printing", "ansi"]
+repository = "https://github.com/schneems/bullet_stream"
+documentation = "https://docs.rs/bullet_stream"
+readme = "README.md"
+include = ["src/**/*", "LICENSE", "README.md"]
 
 [dev-dependencies]
 fun_run = "0.1.2"

@@ -1,5 +1,7 @@
 # Bullet stream
 
+Bulletproof printing for bullet point text
+
 ## What
 
 An opinonated logger aimed at streaming text output (of scripts or buildpacks) to users. The format is loosely based on markdown headers and bulletpoints, hence the name.
