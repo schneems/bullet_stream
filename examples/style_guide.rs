@@ -18,7 +18,8 @@ fn main() {
             .sub_bullet("sub bullet example two")
             .done();
 
-        log.bullet("Bullet section description")
+        log = log
+            .bullet("Bullet section description")
             .sub_bullet(
                 "A section should be a noun i.e. 'Ruby Version', consider this the section topic.",
             )
@@ -37,17 +38,21 @@ fn main() {
             .sub_bullet("HELP: capitalize the first letter")
             .done();
 
-        // let mut command = Command::new("bash");
-        // command.args(["-c", "ps aux | grep cargo"]);
+        let mut command = Command::new("bash");
+        command.args(["-c", "ps aux | grep cargo"]);
 
-        // let mut stream = log.bullet("Timer steps")
-        // .sub_bullet("Long running code should execute with a timer printing to the UI, to indicate the progam did not hang.")
-        // .sub_bullet("Example:")
-        // // .s
-        // .step_timed("Background progress timer")
-        // .finish_timed_step()
-        // .sub_bullet("Output can be streamed. Mostly from commands. Example:")
-        // .step_timed_stream(&format!("Running {}", fmt::command(command.name())));
+        let mut sub_bullet = log.bullet("Timer steps")
+        .sub_bullet("Long running code should execute with a timer to indicate the progam did not hang. Example:")
+        .start_timer("Background progress timer")
+        .done()
+        .sub_bullet("Output can be streamed. Mostly from commands. Example:");
+
+        let _result = sub_bullet.stream_with(
+            format!("Running {}", style::command(command.name())),
+            |stdout, stderr| command.stream_output(stdout, stderr),
+        );
+
+        sub_bullet.done();
 
         // // TODO: Remove usage of unwrap(): https://github.com/heroku/buildpacks-ruby/issues/238
         // #[allow(clippy::unwrap_used)]
@@ -68,7 +73,7 @@ fn main() {
             .done();
 
         log = log
-            .bullet("DEBUG INFO:")
+            .bullet(style::important("DEBUG INFO:"))
             .sub_bullet(cmd_error.to_string())
             .done();
 
