@@ -6,8 +6,6 @@ use std::sync::Arc;
 /// Constructs a writer that buffers written data until given marker byte is encountered and
 /// then applies the given mapping function to the data before passing the result to the wrapped
 /// writer.
-///
-/// See the [`mappers`] module for a collection of commonly used mappers.
 pub fn mapped<W: io::Write, F: (Fn(Vec<u8>) -> Vec<u8>) + Sync + Send + 'static>(
     w: W,
     marker_byte: u8,
@@ -19,8 +17,6 @@ pub fn mapped<W: io::Write, F: (Fn(Vec<u8>) -> Vec<u8>) + Sync + Send + 'static>
 /// Constructs a writer that buffers written data until an ASCII/UTF-8 newline byte (`b'\n'`) is
 /// encountered and then applies the given mapping function to the data before passing the result to
 /// the wrapped writer.
-///
-/// See the [`mappers`] module for a collection of commonly used mappers.
 pub fn line_mapped<W: io::Write, F: (Fn(Vec<u8>) -> Vec<u8>) + Sync + Send + 'static>(
     w: W,
     f: F,
@@ -45,13 +41,6 @@ pub struct MappedWrite<W: io::Write> {
     marker_byte: u8,
     buffer: Vec<u8>,
     mapping_fn: Arc<dyn (Fn(Vec<u8>) -> Vec<u8>) + Sync + Send>,
-}
-
-/// A tee writer that was created with the [`tee`] function.
-#[derive(Debug, Clone)]
-pub struct TeeWrite<A: io::Write, B: io::Write> {
-    inner_a: A,
-    inner_b: B,
 }
 
 impl<W> MappedWrite<W>
@@ -131,19 +120,6 @@ impl<W: io::Write + Debug> Debug for MappedWrite<W> {
             .field("buffer", &self.buffer)
             .field("mapping_fn", &"Fn()")
             .finish()
-    }
-}
-
-impl<A: io::Write, B: io::Write> io::Write for TeeWrite<A, B> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.inner_a.write_all(buf)?;
-        self.inner_b.write_all(buf)?;
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.inner_a.flush()?;
-        self.inner_b.flush()
     }
 }
 
