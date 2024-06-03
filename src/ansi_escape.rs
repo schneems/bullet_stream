@@ -31,6 +31,7 @@ const RED: &str = "\x1B[0;31m";
 const YELLOW: &str = "\x1B[0;33m";
 const BOLD_CYAN: &str = "\x1B[1;36m";
 const BOLD_PURPLE: &str = "\x1B[1;35m";
+const BOLD_UNDERLINE_CYAN: &str = "\x1B[1;4;36m";
 const DIM: &str = "\x1B[2;1m"; // Default color but softer/less vibrant
 
 #[derive(Debug)]
@@ -40,6 +41,7 @@ pub(crate) enum ANSI {
     Red,
     Yellow,
     BoldCyan,
+    BoldUnderlineCyan,
     BoldPurple,
 }
 
@@ -51,6 +53,7 @@ impl ANSI {
             ANSI::Yellow => YELLOW,
             ANSI::BoldCyan => BOLD_CYAN,
             ANSI::BoldPurple => BOLD_PURPLE,
+            ANSI::BoldUnderlineCyan => BOLD_UNDERLINE_CYAN,
         }
     }
 }

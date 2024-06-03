@@ -174,7 +174,7 @@ pub mod state {
     /// This state is intended for long-running tasks that do not stream but wish to convey progress
     /// to the end user. For example, while downloading a file.
     ///
-    /// This state is started from a [`state::SubBullet`] and finished back to a [`state::SubBullet`].
+    /// This state is started from a [`SubBullet`] and finished back to a [`SubBullet`].
     ///
     /// ```rust
     /// use bullet_stream::{Output, state::{Bullet, SubBullet}};
@@ -277,7 +277,7 @@ where
     /// [`Output::error`] instead.
     ///
     /// Warnings will be output in a multi-line paragraph style. A warning can be emitted from any
-    /// state except for [`state::NotStarted`].
+    /// state except for [`state::Header`].
     #[must_use]
     pub fn warning(mut self, s: impl AsRef<str>) -> Output<S> {
         self.write_paragraph(&ANSI::Yellow, s);
@@ -334,7 +334,7 @@ where
 {
     /// Create a buildpack output struct, but do not announce the buildpack's start.
     ///
-    /// See the [`Output::start`] method for more details.
+    /// See the [`Output::h1`] and [`Output::h2`] methods for more details.
     #[must_use]
     pub fn new(io: W) -> Self {
         Self {
@@ -478,7 +478,7 @@ where
     /// Finalize a timer's output.
     ///
     /// Once you're finished with your long running task, calling this function
-    /// finalizes the timer's output and transitions back to a [`state::Section`].
+    /// finalizes the timer's output and transitions back to a [`state::SubBullet`].
     #[must_use]
     pub fn done(self) -> Output<state::SubBullet<W>> {
         let duration = self.state.started.elapsed();
@@ -531,7 +531,7 @@ where
     /// observable by the user through the buildpack output. For example, if a cache needs to be
     /// cleared, emit that your buildpack is clearing it and why.
     ///
-    /// Multiple steps are allowed within a section. This function returns to the same [`state::Section`].
+    /// Multiple steps are allowed within a section. This function returns to the same [`state::SubBullet`].
     #[must_use]
     pub fn sub_bullet(mut self, s: impl AsRef<str>) -> Output<state::SubBullet<W>> {
         writeln_now(&mut self.state.write, Self::style(s));
