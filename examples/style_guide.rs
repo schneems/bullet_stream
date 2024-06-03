@@ -135,16 +135,11 @@ fn main() {
                 "style::details(\"extra information\")".to_string(),
                 "Add specific information at the end of a line i.e. 'Cache cleared (ruby version changed)'".to_string()
             ],
-            // vec![
-            //     fmt::HELP.to_string(),
-            //     "fmt::HELP.to_string()".to_string(),
-            //     "A help prefix, use it in a step or section title".to_string()
-            // ],
-            // vec![
-            //     fmt::DEBUG_INFO.to_string(),
-            //     "fmt::DEBUG_INFO.to_string()".to_string(),
-            //     "A debug prefix, use it in a step or section title".to_string()
-            // ]
+            vec![
+                style::important("HELP:").to_string(),
+                "style::important(\"HELP:\").to_string()".to_string(),
+                "Call attention to individual words, useful when you want to emphasize a prefix but not the whole line.".to_string()
+            ],
         ];
 
         table.print(data);
