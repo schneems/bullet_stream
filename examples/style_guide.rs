@@ -1,7 +1,6 @@
-// use commons::output::fmt::{self, DEBUG_INFO, HELP};
 use ascii_table::AsciiTable;
 #[allow(clippy::wildcard_imports)]
-use bullet_stream::{style, Output};
+use bullet_stream::{style, Print};
 use fun_run::CommandWithName;
 use indoc::formatdoc;
 use std::io::stdout;
@@ -10,7 +9,7 @@ use std::process::Command;
 #[allow(clippy::too_many_lines)]
 fn main() {
     {
-        let mut log = Output::new(stdout()).h1("Living build output style guide");
+        let mut log = Print::new(stdout()).h1("Living build output style guide");
         log = log.h2("Bullet section features");
         log = log
             .bullet("Bullet example")
@@ -66,7 +65,7 @@ fn main() {
         #[allow(clippy::unwrap_used)]
         let cmd_error = Command::new("iDoNotExist").named_output().err().unwrap();
 
-        let mut log = Output::new(stdout()).h2("Error and warnings");
+        let mut log = Print::new(stdout()).h2("Error and warnings");
         log = log
             .bullet("Debug information")
             .sub_bullet("Should go above errors in section/step format")
@@ -106,7 +105,7 @@ fn main() {
     }
 
     {
-        let log = Output::new(stdout()).h2("Formatting helpers");
+        let log = Print::new(stdout()).h2("Formatting helpers");
         log.bullet("The fmt module")
             .sub_bullet(formatdoc! {"
                 Formatting helpers can be used to enhance log output:
