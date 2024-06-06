@@ -16,13 +16,13 @@ pub mod style;
 mod util;
 mod write;
 
-/// Use [`Output`] to output structured text as a buildpack/script executes. The output
+/// Use [`Print`] to output structured text as a buildpack/script executes. The output
 /// is intended to be read by the application user.
 ///
 /// ```rust
-/// use bullet_stream::Output;
+/// use bullet_stream::Print;
 ///
-/// let mut output = Output::new(std::io::stdout())
+/// let mut output = Print::new(std::io::stdout())
 ///     .h2("Example Buildpack")
 ///     .warning("No Gemfile.lock found");
 ///
@@ -34,14 +34,20 @@ mod write;
 /// ```
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
-pub struct Output<T> {
+pub struct Print<T> {
     pub(crate) started: Option<Instant>,
     pub(crate) state: T,
 }
 
-/// Various states for [`Output`] to contain.
+#[deprecated(
+    since = "0.2.0",
+    note = "bullet_stream::Output conflicts with std::io::Output, prefer Print"
+)]
+pub type Output<T> = Print<T>;
+
+/// Various states for [`Print`] to contain.
 ///
-/// The [`Output`] struct acts as an output state machine. These structs
+/// The [`Print`] struct acts as an output state machine. These structs
 /// represent the various states. See struct documentation for more details.
 pub mod state {
     use crate::background_printer::PrintGuard;
@@ -62,15 +68,15 @@ pub mod state {
     /// Example:
     ///
     /// ```rust
-    /// use bullet_stream::{Output, state::{Bullet, Header}};
+    /// use bullet_stream::{Print, state::{Bullet, Header}};
     /// use std::io::Write;
     ///
-    /// let mut not_started = Output::new(std::io::stdout());
+    /// let mut not_started = Print::new(std::io::stdout());
     /// let output = start_buildpack(not_started);
     ///
     /// output.bullet("Ruby version").sub_bullet("Installing Ruby").done();
     ///
-    /// fn start_buildpack<W>(mut output: Output<Header<W>>) -> Output<Bullet<W>>
+    /// fn start_buildpack<W>(mut output: Print<Header<W>>) -> Print<Bullet<W>>
     /// where W: Write + Send + Sync + 'static {
     ///     output.h2("Example Buildpack")
     ///}
@@ -87,15 +93,15 @@ pub mod state {
     /// Example:
     ///
     /// ```rust
-    /// use bullet_stream::{Output, state::{Bullet, Header, SubBullet}};
+    /// use bullet_stream::{Print, state::{Bullet, Header, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Output::new(std::io::stdout())
+    /// let mut output = Print::new(std::io::stdout())
     ///     .h2("Example Buildpack");
     ///
     /// output = install_ruby(output).done();
     ///
-    /// fn install_ruby<W>(mut output: Output<Bullet<W>>) -> Output<SubBullet<W>>
+    /// fn install_ruby<W>(mut output: Print<Bullet<W>>) -> Print<SubBullet<W>>
     /// where W: Write + Send + Sync + 'static {
     ///     let out = output.bullet("Ruby version")
     ///         .sub_bullet("Installing Ruby");
@@ -117,16 +123,16 @@ pub mod state {
     /// Example:
     ///
     /// ```rust
-    /// use bullet_stream::{Output, state::{Bullet, SubBullet}};
+    /// use bullet_stream::{Print, state::{Bullet, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Output::new(std::io::stdout())
+    /// let mut output = Print::new(std::io::stdout())
     ///     .h2("Example Buildpack")
     ///     .bullet("Ruby version");
     ///
     /// install_ruby(output).done();
     ///
-    /// fn install_ruby<W>(mut output: Output<SubBullet<W>>) -> Output<Bullet<W>>
+    /// fn install_ruby<W>(mut output: Print<SubBullet<W>>) -> Print<Bullet<W>>
     /// where W: Write + Send + Sync + 'static {
     ///     let output = output.sub_bullet("Installing Ruby");
     ///     // ...
@@ -142,20 +148,20 @@ pub mod state {
     /// This state is intended for streaming output from a process to the end user. It is
     /// started from a `state::SubBullet` and finished back to a `state::SubBullet`.
     ///
-    /// The `Output<state::Stream<W>>` implements [`std::io::Write`], so you can stream
+    /// The `Print<state::Stream<W>>` implements [`std::io::Write`], so you can stream
     /// from anything that accepts a [`std::io::Write`].
     ///
     /// ```rust
-    /// use bullet_stream::{Output, state::{Bullet, SubBullet}};
+    /// use bullet_stream::{Print, state::{Bullet, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Output::new(std::io::stdout())
+    /// let mut output = Print::new(std::io::stdout())
     ///     .h2("Example Buildpack")
     ///     .bullet("Ruby version");
     ///
     /// install_ruby(output).done();
     ///
-    /// fn install_ruby<W>(mut output: Output<SubBullet<W>>) -> Output<SubBullet<W>>
+    /// fn install_ruby<W>(mut output: Print<SubBullet<W>>) -> Print<SubBullet<W>>
     /// where W: Write + Send + Sync + 'static {
     ///     let mut stream = output.sub_bullet("Installing Ruby")
     ///         .start_stream("Streaming stuff");
@@ -177,16 +183,16 @@ pub mod state {
     /// This state is started from a [`SubBullet`] and finished back to a [`SubBullet`].
     ///
     /// ```rust
-    /// use bullet_stream::{Output, state::{Bullet, SubBullet}};
+    /// use bullet_stream::{Print, state::{Bullet, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Output::new(std::io::stdout())
+    /// let mut output = Print::new(std::io::stdout())
     ///     .h2("Example Buildpack")
     ///     .bullet("Ruby version");
     ///
     /// install_ruby(output).done();
     ///
-    /// fn install_ruby<W>(mut output: Output<SubBullet<W>>) -> Output<SubBullet<W>>
+    /// fn install_ruby<W>(mut output: Print<SubBullet<W>>) -> Print<SubBullet<W>>
     /// where W: Write + Send + Sync + 'static {
     ///     let mut timer = output.sub_bullet("Installing Ruby")
     ///         .start_timer("Installing");
@@ -236,7 +242,7 @@ where
 
 /// Used for announcements such as warning and error states
 #[allow(private_bounds)]
-impl<S> Output<S>
+impl<S> Print<S>
 where
     S: AnnounceSupportedState,
 {
@@ -256,7 +262,8 @@ where
     /// you are certain that the error is transient.
     ///
     /// If you detect something problematic but not bad enough to halt buildpack execution, consider
-    /// using a [`Output::warning`] instead.
+    /// using a [`Print::warning`] instead.
+    ///
     pub fn error(mut self, s: impl AsRef<str>) {
         self.write_paragraph(&ANSI::Red, s);
     }
@@ -274,12 +281,12 @@ where
     /// Warnings should often come with some disabling mechanism, if possible. If the user can turn
     /// off the warning, that information should be included in the warning message. If you're
     /// confident that the user should not be able to turn off a warning, consider using a
-    /// [`Output::error`] instead.
+    /// [`Print::error`] instead.
     ///
     /// Warnings will be output in a multi-line paragraph style. A warning can be emitted from any
     /// state except for [`state::Header`].
     #[must_use]
-    pub fn warning(mut self, s: impl AsRef<str>) -> Output<S> {
+    pub fn warning(mut self, s: impl AsRef<str>) -> Print<S> {
         self.write_paragraph(&ANSI::Yellow, s);
         self
     }
@@ -293,9 +300,9 @@ where
     ///
     /// Important messages should be used sparingly and only for things the user should be aware of
     /// but not necessarily act on. If the message is actionable, consider using a
-    /// [`Output::warning`] instead.
+    /// [`Print::warning`] instead.
     #[must_use]
-    pub fn important(mut self, s: impl AsRef<str>) -> Output<S> {
+    pub fn important(mut self, s: impl AsRef<str>) -> Print<S> {
         self.write_paragraph(&ANSI::BoldCyan, s);
         self
     }
@@ -328,13 +335,13 @@ where
     }
 }
 
-impl<W> Output<state::Header<W>>
+impl<W> Print<state::Header<W>>
 where
     W: Write,
 {
     /// Create a buildpack output struct, but do not announce the buildpack's start.
     ///
-    /// See the [`Output::h1`] and [`Output::h2`] methods for more details.
+    /// See the [`Print::h1`] and [`Print::h2`] methods for more details.
     #[must_use]
     pub fn new(io: W) -> Self {
         Self {
@@ -358,7 +365,7 @@ where
     ///
     /// This function will transition your buildpack output to [`state::Bullet`].
     #[must_use]
-    pub fn h1(mut self, buildpack_name: impl AsRef<str>) -> Output<state::Bullet<W>> {
+    pub fn h1(mut self, buildpack_name: impl AsRef<str>) -> Print<state::Bullet<W>> {
         writeln_now(
             &mut self.state.write,
             ansi_escape::wrap_ansi_escape_each_line(
@@ -383,7 +390,7 @@ where
     ///
     /// This function will transition your buildpack output to [`state::Bullet`].
     #[must_use]
-    pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Output<state::Bullet<W>> {
+    pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Print<state::Bullet<W>> {
         if !self.state.write.was_paragraph {
             writeln_now(&mut self.state.write, "");
         }
@@ -401,8 +408,8 @@ where
 
     /// Start a buildpack output without announcing the name.
     #[must_use]
-    pub fn without_header(self) -> Output<state::Bullet<W>> {
-        Output {
+    pub fn without_header(self) -> Print<state::Bullet<W>> {
+        Print {
             started: Some(Instant::now()),
             state: state::Bullet {
                 write: self.state.write,
@@ -411,7 +418,7 @@ where
     }
 }
 
-impl<W> Output<state::Bullet<W>>
+impl<W> Print<state::Bullet<W>>
 where
     W: Write + Send + Sync + 'static,
 {
@@ -433,10 +440,10 @@ where
     ///
     /// This function will transition your buildpack output to [`state::SubBullet`].
     #[must_use]
-    pub fn bullet(mut self, s: impl AsRef<str>) -> Output<state::SubBullet<W>> {
+    pub fn bullet(mut self, s: impl AsRef<str>) -> Print<state::SubBullet<W>> {
         writeln_now(&mut self.state.write, Self::style(s));
 
-        Output {
+        Print {
             started: self.started,
             state: state::SubBullet {
                 write: self.state.write,
@@ -446,7 +453,7 @@ where
 
     /// Outputs an H2 header
     #[must_use]
-    pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Output<state::Bullet<W>> {
+    pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Print<state::Bullet<W>> {
         if !self.state.write.was_paragraph {
             writeln_now(&mut self.state.write, "");
         }
@@ -479,7 +486,7 @@ where
     }
 }
 
-impl<W> Output<state::Background<W>>
+impl<W> Print<state::Background<W>>
 where
     W: Write + Send + Sync + 'static,
 {
@@ -488,7 +495,7 @@ where
     /// Once you're finished with your long running task, calling this function
     /// finalizes the timer's output and transitions back to a [`state::SubBullet`].
     #[must_use]
-    pub fn done(self) -> Output<state::SubBullet<W>> {
+    pub fn done(self) -> Print<state::SubBullet<W>> {
         let duration = self.state.started.elapsed();
         let mut io = match self.state.write.stop() {
             Ok(io) => io,
@@ -498,14 +505,14 @@ where
         };
 
         writeln_now(&mut io, style::details(duration_format::human(&duration)));
-        Output {
+        Print {
             started: self.started,
             state: state::SubBullet { write: io },
         }
     }
 }
 
-impl<W> Output<state::SubBullet<W>>
+impl<W> Print<state::SubBullet<W>>
 where
     W: Write + Send + Sync + 'static,
 {
@@ -541,7 +548,7 @@ where
     ///
     /// Multiple steps are allowed within a section. This function returns to the same [`state::SubBullet`].
     #[must_use]
-    pub fn sub_bullet(mut self, s: impl AsRef<str>) -> Output<state::SubBullet<W>> {
+    pub fn sub_bullet(mut self, s: impl AsRef<str>) -> Print<state::SubBullet<W>> {
         writeln_now(&mut self.state.write, Self::style(s));
         self
     }
@@ -552,17 +559,17 @@ where
     /// end user. Streaming lets the end user know that something is happening and provides them with
     /// the output of the process.
     ///
-    /// The result of this function is a `Output<state::Stream<W>>` which implements [`std::io::Write`].
+    /// The result of this function is a `Print<state::Stream<W>>` which implements [`std::io::Write`].
     ///
     /// If you do not wish the end user to view the output of the process, consider using a `step` instead.
     ///
     /// This function will transition your buildpack output to [`state::Stream`].
     #[must_use]
-    pub fn start_stream(mut self, s: impl AsRef<str>) -> Output<state::Stream<W>> {
+    pub fn start_stream(mut self, s: impl AsRef<str>) -> Print<state::Stream<W>> {
         writeln_now(&mut self.state.write, Self::style(s));
         writeln_now(&mut self.state.write, "");
 
-        Output {
+        Print {
             started: self.started,
             state: state::Stream {
                 started: Instant::now(),
@@ -592,7 +599,8 @@ where
     ///
     /// This function will transition your buildpack output to [`state::Background`].
     #[allow(clippy::missing_panics_doc)]
-    pub fn start_timer(mut self, s: impl AsRef<str>) -> Output<state::Background<W>> {
+    #[must_use]
+    pub fn start_timer(mut self, s: impl AsRef<str>) -> Print<state::Background<W>> {
         // Do not emit a newline after the message
         write!(self.state.write, "{}", Self::style(s)).expect("Output error: UI writer closed");
         self.state
@@ -600,7 +608,7 @@ where
             .flush()
             .expect("Output error: UI writer closed");
 
-        Output {
+        Print {
             started: self.started,
             state: state::Background {
                 started: Instant::now(),
@@ -644,11 +652,11 @@ where
     ///
     ///
     /// ```no_run
-    /// use bullet_stream::{style, Output};
+    /// use bullet_stream::{style, Print};
     /// use fun_run::CommandWithName;
     /// use std::process::Command;
     ///
-    /// let mut output = Output::new(std::io::stdout())
+    /// let mut output = Print::new(std::io::stdout())
     ///     .h2("Example Buildpack")
     ///     .bullet("Streaming");
     ///
@@ -709,8 +717,9 @@ where
     }
 
     /// Finish a section and transition back to [`state::Bullet`].
-    pub fn done(self) -> Output<state::Bullet<W>> {
-        Output {
+    #[must_use]
+    pub fn done(self) -> Print<state::Bullet<W>> {
+        Print {
             started: self.started,
             state: state::Bullet {
                 write: self.state.write,
@@ -719,7 +728,7 @@ where
     }
 }
 
-impl<W> Output<state::Stream<W>>
+impl<W> Print<state::Stream<W>>
 where
     W: Write + Send + Sync + 'static,
 {
@@ -727,10 +736,11 @@ where
     ///
     /// Once you're finished streaming to the output, calling this function
     /// finalizes the stream's output and transitions back to a [`state::Bullet`].
-    pub fn done(self) -> Output<state::SubBullet<W>> {
+    #[must_use]
+    pub fn done(self) -> Print<state::SubBullet<W>> {
         let duration = self.state.started.elapsed();
 
-        let mut output = Output {
+        let mut output = Print {
             started: self.started,
             state: state::SubBullet {
                 write: self.state.write.unwrap(),
@@ -748,7 +758,7 @@ where
     }
 }
 
-impl<W> Write for Output<state::Stream<W>>
+impl<W> Write for Print<state::Stream<W>>
 where
     W: Write,
 {
@@ -780,7 +790,7 @@ mod test {
     #[test]
     fn double_h2_h2_newlines() {
         let writer = Vec::new();
-        let output = Output::new(writer).h2("Header 2").h2("Header 2");
+        let output = Print::new(writer).h2("Header 2").h2("Header 2");
 
         let io = output.done();
         let expected = formatdoc! {"
@@ -801,7 +811,7 @@ mod test {
     #[test]
     fn double_h1_h2_newlines() {
         let writer = Vec::new();
-        let output = Output::new(writer).h1("Header 1").h2("Header 2");
+        let output = Print::new(writer).h1("Header 1").h2("Header 2");
 
         let io = output.done();
         let expected = formatdoc! {"
@@ -822,7 +832,7 @@ mod test {
     #[test]
     fn stream_with() {
         let writer = Vec::new();
-        let mut output = Output::new(writer)
+        let mut output = Print::new(writer)
             .h2("Example Buildpack")
             .bullet("Streaming");
         let mut cmd = std::process::Command::new("echo");
@@ -855,7 +865,7 @@ mod test {
 
     #[test]
     fn background_timer() {
-        let io = Output::new(Vec::new())
+        let io = Print::new(Vec::new())
             .without_header()
             .bullet("Background")
             .start_timer("Installing")
@@ -887,7 +897,7 @@ mod test {
 
     #[test]
     fn write_paragraph_empty_lines() {
-        let io = Output::new(Vec::new())
+        let io = Print::new(Vec::new())
             .h1("Example Buildpack\n\n")
             .warning("\n\nhello\n\n\t\t\nworld\n\n")
             .bullet("Version\n\n")
@@ -921,7 +931,7 @@ mod test {
         let tmpdir = tempfile::tempdir().unwrap();
         let path = tmpdir.path().join("output.txt");
 
-        Output::new(File::create(&path).unwrap())
+        Print::new(File::create(&path).unwrap())
             .h1("Buildpack Header is Bold Purple")
             .important("Important is bold cyan")
             .warning("Warnings are yellow")
@@ -945,7 +955,7 @@ mod test {
     #[test]
     fn test_important() {
         let writer = Vec::new();
-        let io = Output::new(writer)
+        let io = Print::new(writer)
             .h1("Heroku Ruby Buildpack")
             .important("This is important")
             .done();
@@ -970,7 +980,7 @@ mod test {
         let tmpdir = tempfile::tempdir().unwrap();
         let path = tmpdir.path().join("output.txt");
 
-        Output::new(File::create(&path).unwrap())
+        Print::new(File::create(&path).unwrap())
             .h1("Heroku Ruby Buildpack")
             .error("This is an error");
 
@@ -991,7 +1001,7 @@ mod test {
     #[test]
     fn test_captures() {
         let writer = Vec::new();
-        let mut first_stream = Output::new(writer)
+        let mut first_stream = Print::new(writer)
             .h1("Heroku Ruby Buildpack")
             .bullet("Ruby version `3.1.3` from `Gemfile.lock`")
             .done()
@@ -1041,7 +1051,7 @@ mod test {
     #[test]
     fn test_streaming_a_command() {
         let writer = Vec::new();
-        let mut stream = Output::new(writer)
+        let mut stream = Print::new(writer)
             .h1("Streaming buildpack demo")
             .bullet("Command streaming")
             .start_stream("Streaming stuff");
@@ -1065,7 +1075,7 @@ mod test {
     #[test]
     fn warning_after_buildpack() {
         let writer = Vec::new();
-        let io = Output::new(writer)
+        let io = Print::new(writer)
             .h1("RCT")
             .warning("It's too crowded here\nI'm tired")
             .bullet("Guest thoughts")
@@ -1096,7 +1106,7 @@ mod test {
     #[test]
     fn warning_step_padding() {
         let writer = Vec::new();
-        let io = Output::new(writer)
+        let io = Print::new(writer)
             .h1("RCT")
             .bullet("Guest thoughts")
             .sub_bullet("The scenery here is wonderful")
@@ -1130,7 +1140,7 @@ mod test {
     #[test]
     fn double_warning_step_padding() {
         let writer = Vec::new();
-        let output = Output::new(writer)
+        let output = Print::new(writer)
             .h1("RCT")
             .bullet("Guest thoughts")
             .sub_bullet("The scenery here is wonderful");

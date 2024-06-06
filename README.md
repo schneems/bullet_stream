@@ -18,13 +18,13 @@ Add bullet_stream to your project:
 $ cargo add bullet_stream
 ```
 
-Now use [`Output`] to output structured text as a script/buildpack executes. The output
+Now use [`Print`] to output structured text as a script/buildpack executes. The output
 is intended to be read by the end user.
 
 ```rust
-use bullet_stream::Output;
+use bullet_stream::Print;
 
-let mut output = Output::new(std::io::stdout())
+let mut output = Print::new(std::io::stdout())
     .h2("Example Buildpack")
     .warning("No Gemfile.lock found");
 

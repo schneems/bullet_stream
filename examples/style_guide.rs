@@ -1,16 +1,16 @@
-// use commons::output::fmt::{self, DEBUG_INFO, HELP};
 use ascii_table::AsciiTable;
 #[allow(clippy::wildcard_imports)]
-use bullet_stream::{style, Output};
+use bullet_stream::{style, Print};
 use fun_run::CommandWithName;
 use indoc::formatdoc;
 use std::io::stdout;
+use std::io::Write;
 use std::process::Command;
 
 #[allow(clippy::too_many_lines)]
 fn main() {
     {
-        let mut log = Output::new(stdout()).h1("Living build output style guide");
+        let mut log = Print::new(stdout()).h1("Living build output style guide");
         log = log.h2("Bullet section features");
         log = log
             .bullet("Bullet example")
@@ -52,13 +52,7 @@ fn main() {
             |stdout, stderr| command.stream_output(stdout, stderr),
         );
 
-        sub_bullet.done();
-
-        // // TODO: Remove usage of unwrap(): https://github.com/heroku/buildpacks-ruby/issues/238
-        // #[allow(clippy::unwrap_used)]
-        // command.stream_output(stream.io(), stream.io()).unwrap();
-        // log = stream.finish_timed_stream().done();
-        // drop(log);
+        let _ = sub_bullet.done();
     }
 
     {
@@ -66,7 +60,7 @@ fn main() {
         #[allow(clippy::unwrap_used)]
         let cmd_error = Command::new("iDoNotExist").named_output().err().unwrap();
 
-        let mut log = Output::new(stdout()).h2("Error and warnings");
+        let mut log = Print::new(stdout()).h2("Error and warnings");
         log = log
             .bullet("Debug information")
             .sub_bullet("Should go above errors in section/step format")
@@ -106,12 +100,10 @@ fn main() {
     }
 
     {
-        let log = Output::new(stdout()).h2("Formatting helpers");
-        log.bullet("The fmt module")
-            .sub_bullet(formatdoc! {"
-                Formatting helpers can be used to enhance log output:
-            "})
-            .done();
+        let log = Print::new(stdout()).h2("Formatting helpers");
+        let mut stream = log
+            .bullet("The fmt module")
+            .start_stream("Formatting helpers can be used to enhance log output:");
 
         let mut table = AsciiTable::default();
         table.set_max_width(240);
@@ -147,6 +139,8 @@ fn main() {
             ],
         ];
 
-        table.print(data);
+        write!(stream, "{}", table.format(data)).unwrap();
+
+        stream.done().done().done();
     }
 }
