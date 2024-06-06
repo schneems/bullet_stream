@@ -4,6 +4,7 @@ use bullet_stream::{style, Print};
 use fun_run::CommandWithName;
 use indoc::formatdoc;
 use std::io::stdout;
+use std::io::Write;
 use std::process::Command;
 
 #[allow(clippy::too_many_lines)]
@@ -51,13 +52,7 @@ fn main() {
             |stdout, stderr| command.stream_output(stdout, stderr),
         );
 
-        sub_bullet.done();
-
-        // // TODO: Remove usage of unwrap(): https://github.com/heroku/buildpacks-ruby/issues/238
-        // #[allow(clippy::unwrap_used)]
-        // command.stream_output(stream.io(), stream.io()).unwrap();
-        // log = stream.finish_timed_stream().done();
-        // drop(log);
+        let _ = sub_bullet.done();
     }
 
     {
@@ -106,11 +101,9 @@ fn main() {
 
     {
         let log = Print::new(stdout()).h2("Formatting helpers");
-        log.bullet("The fmt module")
-            .sub_bullet(formatdoc! {"
-                Formatting helpers can be used to enhance log output:
-            "})
-            .done();
+        let mut stream = log
+            .bullet("The fmt module")
+            .start_stream("Formatting helpers can be used to enhance log output:");
 
         let mut table = AsciiTable::default();
         table.set_max_width(240);
@@ -146,6 +139,8 @@ fn main() {
             ],
         ];
 
-        table.print(data);
+        write!(stream, "{}", table.format(data)).unwrap();
+
+        stream.done().done().done();
     }
 }
