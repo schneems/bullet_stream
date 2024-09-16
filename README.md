@@ -230,3 +230,46 @@ In this example the get and cached lines are logged from within an async context
 In this example the output states what it's going to do by listing the package source locations and then after it downloads them there's a syncronization point before it has enough information to output the which archives were downloaded and their SHAs and begins processing them (again asyncronously).
 
 Alternatively you could wrap a `SubBullet` state struct in an Arc and try passing it around, or use bullet_stream for top level printing while printing inside of an async context could happen via `println`.
+
+### Generics
+
+Bullet stream works with anything that is `Write + Send + Sync + 'static` but most people will use `std::io::Stdout` or `std::io::Stderr`. If you know a specific type you want to output to, then you can simplify your method definitions.
+
+For example:
+
+```rust
+use bullet_stream::{
+    state::{Bullet, SubBullet},
+    Print,
+};
+use std::path::{Path, PathBuf};
+use std::io::Stdout;
+
+fn install_ruby(
+    path: &Path,
+    mut output: Print<Bullet<Stdout>>,
+) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
+{
+    todo!();
+}
+```
+
+If that's still too much typing for you, you can simplify more with type aliases:
+
+```rust
+use bullet_stream::{Print, state};
+use std::io::Stdout;
+use std::path::Path;
+
+pub(crate) type Header = Print<state::Header<Stdout>>;
+pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
+pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
+
+fn install_ruby(
+    path: &Path,
+    mut output: Bullet,
+) -> Result<SubBullet, std::io::Error>
+{
+    todo!();
+}
+```
