@@ -93,21 +93,30 @@ pub mod state {
     /// Example:
     ///
     /// ```rust
-    /// use bullet_stream::{Print, state::{Bullet, Header, SubBullet}};
+    /// use bullet_stream::{
+    ///     state::{Bullet, Header, SubBullet},
+    ///     Print,
+    /// };
     /// use std::io::Write;
+    /// use std::path::{Path, PathBuf};
     ///
-    /// let mut output = Print::new(std::io::stdout())
-    ///     .h2("Example Buildpack");
+    /// let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
     ///
-    /// output = install_ruby(output).done();
+    /// output = install_ruby(&PathBuf::from("/dev/null"), output)
+    ///     .unwrap()
+    ///     .done();
     ///
-    /// fn install_ruby<W>(mut output: Print<Bullet<W>>) -> Print<SubBullet<W>>
-    /// where W: Write + Send + Sync + 'static {
-    ///     let out = output.bullet("Ruby version")
-    ///         .sub_bullet("Installing Ruby");
+    /// fn install_ruby<W>(
+    ///     path: &Path,
+    ///     mut output: Print<Bullet<W>>,
+    /// ) -> Result<Print<SubBullet<W>>, std::io::Error>
+    /// where
+    ///     W: Write + Send + Sync + 'static,
+    /// {
+    ///     let out = output.bullet("Ruby version").sub_bullet("Installing Ruby");
     ///     // ...
-    ///     out
-    ///}
+    ///     Ok(out)
+    /// }
     /// ```
     #[derive(Debug)]
     pub struct Bullet<W> {
