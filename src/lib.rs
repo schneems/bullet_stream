@@ -16,6 +16,8 @@ pub mod style;
 mod util;
 mod write;
 
+pub use ansi_escape::strip_ansi;
+
 /// Use [`Print`] to output structured text as a buildpack/script executes. The output
 /// is intended to be read by the application user.
 ///
@@ -791,6 +793,7 @@ fn writeln_now<D: Write>(destination: &mut D, msg: impl AsRef<str>) {
 mod test {
     use super::*;
     use crate::util::LockedWriter;
+    use ansi_escape::strip_ansi;
     use fun_run::CommandWithName;
     use indoc::formatdoc;
     use libcnb_test::assert_contains;
@@ -811,10 +814,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        )
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)))
     }
 
     #[test]
@@ -832,10 +832,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        )
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)))
     }
 
     #[test]
@@ -866,10 +863,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
@@ -889,10 +883,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
 
         // Test timer dot colorization
         let expected = formatdoc! {"
@@ -929,10 +920,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
@@ -978,10 +966,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
@@ -1001,10 +986,7 @@ mod test {
 
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(std::fs::read_to_string(path).unwrap())
-        );
+        assert_eq!(expected, strip_ansi(std::fs::read_to_string(path).unwrap()));
     }
 
     #[test]
@@ -1051,10 +1033,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
@@ -1076,7 +1055,7 @@ mod test {
 
         let io = stream.done().done().done();
 
-        let actual = strip_ansi_escape_sequences(String::from_utf8_lossy(&io));
+        let actual = strip_ansi(String::from_utf8_lossy(&io));
 
         assert_contains!(actual, "      hello world\n");
     }
@@ -1106,10 +1085,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
@@ -1140,10 +1116,7 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
@@ -1178,31 +1151,6 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
-        assert_eq!(
-            expected,
-            strip_ansi_escape_sequences(String::from_utf8_lossy(&io))
-        );
-    }
-
-    fn strip_ansi_escape_sequences(contents: impl AsRef<str>) -> String {
-        let mut result = String::new();
-        let mut in_ansi_escape = false;
-        for char in contents.as_ref().chars() {
-            if in_ansi_escape {
-                if char == 'm' {
-                    in_ansi_escape = false;
-                    continue;
-                }
-            } else {
-                if char == '\x1B' {
-                    in_ansi_escape = true;
-                    continue;
-                }
-
-                result.push(char);
-            }
-        }
-
-        result
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 }
