@@ -87,6 +87,32 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_simple_ansi_strip() {
+        assert_eq!(strip_ansi("\x1b[m\x1b[m\x1b[32m\x1b[1m    Finished\x1b[m dev [unoptimized + debuginfo] target(s) in 0.0 secs"),
+                      "    Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs".to_string());
+    }
+
+    #[test]
+    fn test_strip_ansi_newlines() {
+        assert_eq!(strip_ansi("foo\nbar\n"), "foo\nbar\n".to_string());
+    }
+
+    #[test]
+    fn test_escapes_newlines_strip_ansi() {
+        assert_eq!(strip_ansi(
+        "\x1b[m\x1b[m\x1b[32m\x1b[1m   Compiling\x1b[m utf8parse v0.1.0
+        \x1b[m\x1b[m\x1b[32m\x1b[1m   Compiling\x1b[m vte v0.3.2
+        \x1b[m\x1b[m\x1b[32m\x1b[1m   Compiling\x1b[m strip-ansi-escapes v0.1.0-pre (file:///build/strip-ansi-escapes)
+        \x1b[m\x1b[m\x1b[32m\x1b[1m    Finished\x1b[m dev [unoptimized + debuginfo] target(s) in 0.66 secs
+        "),
+       "   Compiling utf8parse v0.1.0
+           Compiling vte v0.3.2
+           Compiling strip-ansi-escapes v0.1.0-pre (file:///build/strip-ansi-escapes)
+            Finished dev [unoptimized + debuginfo] target(s) in 0.66 secs
+        ".to_string());
+    }
+
+    #[test]
     fn test_strip_ansi() {
         for color in [
             ANSI::Dim,
