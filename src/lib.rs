@@ -501,6 +501,57 @@ impl<W> Print<state::Background<W>>
 where
     W: Write + Send + Sync + 'static,
 {
+    /// Interrupt a timer with a message explaining why
+    ///
+    /// ```rust
+    /// use bullet_stream::Print;
+    ///
+    /// let mut output = Print::new(Vec::new())
+    ///     .h2("Example Buildpack");
+    ///
+    /// let mut bullet = output.bullet("Example timer cancel");
+    /// let mut timer = bullet.start_timer("Installing Ruby");
+    /// std::thread::sleep(std::time::Duration::from_millis(1));
+    ///
+    /// bullet = timer.cancel("Interrupted");
+    /// timer = bullet.start_timer("Retrying");
+    /// std::thread::sleep(std::time::Duration::from_millis(1));
+    /// bullet = timer.done();
+    /// output = bullet.done();
+    ///
+    /// use indoc::formatdoc;
+    /// assert_eq!(
+    ///     formatdoc!
+    ///         {"## Example Buildpack
+    ///
+    ///           - Example timer cancel
+    ///             - Installing Ruby ... (Interrupted)
+    ///             - Retrying ... (< 0.1s)
+    ///           - Done (finished in < 0.1s)
+    ///         "}.trim(),
+    ///     strip_ansi(String::from_utf8_lossy(&output.done())).trim()
+    /// );
+    ///
+    /// fn strip_ansi(input: impl AsRef<str>) -> String {
+    ///     let re = regex::Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").expect("Clippy checked");
+    ///     re.replace_all(input.as_ref(), "").to_string()
+    /// }
+    /// ```
+    pub fn cancel(self, why_details: impl AsRef<str>) -> Print<state::SubBullet<W>> {
+        let mut io = match self.state.write.stop() {
+            Ok(io) => io,
+            // Stdlib docs recommend using `resume_unwind` to resume the thread panic
+            // <https://doc.rust-lang.org/std/thread/type.Result.html>
+            Err(e) => std::panic::resume_unwind(e),
+        };
+
+        writeln_now(&mut io, style::details(why_details));
+        Print {
+            started: self.started,
+            state: state::SubBullet { write: io },
+        }
+    }
+
     /// Finalize a timer's output.
     ///
     /// Once you're finished with your long running task, calling this function

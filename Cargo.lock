@@ -60,6 +60,7 @@ dependencies = [
  "fun_run",
  "indoc",
  "libcnb-test",
+ "regex",
  "tempfile",
 ]
 
