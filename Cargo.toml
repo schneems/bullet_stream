@@ -16,3 +16,4 @@ indoc = "2.0.5"
 tempfile = "3.10.1"
 libcnb-test = "0.21.0"
 ascii_table = { version = "4.0.3", features = ["color_codes"] }
+regex = "1"
