@@ -520,6 +520,7 @@ where
     /// output = bullet.done();
     ///
     /// use indoc::formatdoc;
+    /// use bullet_stream::strip_ansi;
     /// assert_eq!(
     ///     formatdoc!
     ///         {"## Example Buildpack
@@ -531,11 +532,6 @@ where
     ///         "}.trim(),
     ///     strip_ansi(String::from_utf8_lossy(&output.done())).trim()
     /// );
-    ///
-    /// fn strip_ansi(input: impl AsRef<str>) -> String {
-    ///     let re = regex::Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").expect("Clippy checked");
-    ///     re.replace_all(input.as_ref(), "").to_string()
-    /// }
     /// ```
     pub fn cancel(self, why_details: impl AsRef<str>) -> Print<state::SubBullet<W>> {
         let mut io = match self.state.write.stop() {
