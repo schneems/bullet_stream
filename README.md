@@ -109,37 +109,38 @@ In general, we recommend breaking business logic down into functions. Rather tha
 Here's an example of logging by passing the output state into functions:
 
 ```rust
-// Example of logging by passing state into a function, not the cleanest
+// Example of logging by passing state into a function, requires a large signature
 // ❌😾❌
 
 use bullet_stream::{
-    state::{Bullet, Header, SubBullet},
-    Print,
+    state::{Bullet, SubBullet},
+    Print, style
 };
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::io::Stdout;
+use std::path::Path;
+
+/// Large function signature, it works but might not always be needed
+fn install_ruby(
+    mut output: Print<Bullet<Stdout>>,
+    path: &Path,
+) -> Result<(Print<SubBullet<Stdout>>, String), std::io::Error>
+{
+    let version = std::fs::read_to_string(path)?
+        .trim()
+        .to_owned();
+
+    let timer = output.bullet(format!("Ruby version {}", style::value(&version)))
+        .start_timer("Installing");
+
+    // ...
+    Ok((timer.done(), version))
+}
 
 let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
 
-output = install_ruby(&PathBuf::from("/dev/null"), output)
-    .unwrap()
-    .done();
-
-fn install_ruby<W>(
-    path: &Path,
-    mut output: Print<Bullet<W>>,
-) -> Result<Print<SubBullet<W>>, std::io::Error>
-where
-    W: Write + Send + Sync + 'static,
-{
-    let mut bullet = output.bullet("Ruby version").sub_bullet("Installing Ruby");
-    let contents = std::fs::read_to_string(path)?;
-
-    bullet = bullet.sub_bullet(format!("Version: {}", contents.trim()));
-
-    // ...
-    Ok(bullet)
-}
+let (bullet, version) = install_ruby(output, &Path::new("/dev/null"))
+    .unwrap();
+output = bullet.done();
 ```
 
 In the above example, the `install_ruby` function both performs logic and logs information, resulting in a very large function signature. If the function also needed to return information, it would need to use a tuple to return both the logger and the information.
@@ -149,30 +150,31 @@ Here's an alternative where the all information needed to log is brought up to t
 ```rust
 // Example of bubbling up information to the logger
 // ✅😸✅
+use bullet_stream::{Print, style};
 
-use bullet_stream::{
-    state::{Bullet, Header, SubBullet},
-    Print,
-};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-
-let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
-output = {
-    let mut bullet = output.bullet("Ruby version").sub_bullet("Installing Ruby");
-    let path = &PathBuf::from("/dev/null");
-    let contents = std::fs::read_to_string(path).unwrap();
-
-    bullet = bullet.sub_bullet(format!("Version: {}", contents.trim()));
-
-    install_ruby_version(contents).unwrap();
-    bullet.done()
-};
-
-fn install_ruby_version(version: String) -> Result<(), std::io::Error> {
+/// Smaller signature
+fn install_ruby_version(version: impl AsRef<str>) -> Result<(), std::io::Error> {
     // ...
     Ok(())
 }
+
+let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+
+// Bubble up data
+let version = std::fs::read_to_string(std::path::Path::new("/dev/null"))
+    .unwrap()
+    .trim()
+    .to_owned();
+
+// Output data
+let timer = output.bullet(format!("Ruby version {}", style::value(&version)))
+    .start_timer("Installing");
+
+// Call logic
+install_ruby_version(&version).unwrap();
+
+output = timer.done()
+    .done();
 ```
 
 It's not **bad** if you want to pass your output around to functions, but it is cumbersome.
@@ -245,8 +247,8 @@ use std::path::{Path, PathBuf};
 use std::io::Stdout;
 
 fn install_ruby(
-    path: &Path,
     mut output: Print<Bullet<Stdout>>,
+    path: &Path,
 ) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
 {
     todo!();
@@ -265,8 +267,8 @@ pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
 pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
 
 fn install_ruby(
-    path: &Path,
     mut output: Bullet,
+    path: &Path,
 ) -> Result<SubBullet, std::io::Error>
 {
     todo!();
