@@ -102,7 +102,7 @@ fn main() {
     {
         let log = Print::new(stdout()).h2("Formatting helpers");
         let mut stream = log
-            .bullet("The fmt module")
+            .bullet(format!("The {} module", style::value("style")))
             .start_stream("Formatting helpers can be used to enhance log output:");
 
         let mut table = AsciiTable::default();
