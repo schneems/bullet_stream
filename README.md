@@ -73,8 +73,7 @@ The project has some unique requirements that might not be obvious at first glan
 The library design relies on a consuming struct design to guarantee output consistency. That means that you'll end up needing to assign the `bullet_stream` result just about every time you use it, for example:
 
 ```rust
-use bullet_stream::{Print, state::{Bullet, Header, SubBullet}};
-use std::io::Write;
+use bullet_stream::Print;
 
 let mut log = Print::new(std::io::stderr()).h1("Building Ruby");
 log = {
