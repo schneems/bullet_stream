@@ -94,6 +94,49 @@ log = {
 log.done();
 ```
 
+### Generics
+
+Bullet stream works with anything that is `Write + Send + Sync + 'static,` but most people will use `std::io::Stdout` or `std::io::Stderr`. If you know a specific type you want to output to, you can simplify your method definitions.
+
+For example:
+
+```rust
+use bullet_stream::{
+    state::{Bullet, SubBullet},
+    Print,
+};
+use std::path::{Path, PathBuf};
+use std::io::Stdout;
+
+fn install_ruby(
+    mut output: Print<Bullet<Stdout>>,
+    path: &Path,
+) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
+{
+    todo!();
+}
+```
+
+If that's still too much typing for you, you can simplify more with type aliases:
+
+```rust
+use bullet_stream::{Print, state};
+use std::io::Stdout;
+use std::path::Path;
+
+pub(crate) type Header = Print<state::Header<Stdout>>;
+pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
+pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
+
+fn install_ruby(
+    mut output: Bullet,
+    path: &Path,
+) -> Result<SubBullet, std::io::Error>
+{
+    todo!();
+}
+```
+
 ### Push logic down, bubble information (to output) up
 
 Any state you send to a function must be retrieved. There are examples in:
@@ -229,46 +272,3 @@ In this example, the get and cached lines are logged within an async context. He
 In this example, the output states what it's going to do by listing the package source locations. After it downloads them, there's a synchronization point before it has enough information to output which archives were downloaded and their SHAs and begin processing them (again asynchronously).
 
 Alternatively, you could wrap a `SubBullet` state struct in an Arc and try passing it around, or use `bullet_stream` for top-level printing. Printing inside an async context could happen via `println`.
-
-### Generics
-
-Bullet stream works with anything that is `Write + Send + Sync + 'static,` but most people will use `std::io::Stdout` or `std::io::Stderr`. If you know a specific type you want to output to, you can simplify your method definitions.
-
-For example:
-
-```rust
-use bullet_stream::{
-    state::{Bullet, SubBullet},
-    Print,
-};
-use std::path::{Path, PathBuf};
-use std::io::Stdout;
-
-fn install_ruby(
-    mut output: Print<Bullet<Stdout>>,
-    path: &Path,
-) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
-{
-    todo!();
-}
-```
-
-If that's still too much typing for you, you can simplify more with type aliases:
-
-```rust
-use bullet_stream::{Print, state};
-use std::io::Stdout;
-use std::path::Path;
-
-pub(crate) type Header = Print<state::Header<Stdout>>;
-pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
-pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
-
-fn install_ruby(
-    mut output: Bullet,
-    path: &Path,
-) -> Result<SubBullet, std::io::Error>
-{
-    todo!();
-}
-```
