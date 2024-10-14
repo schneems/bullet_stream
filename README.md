@@ -88,6 +88,9 @@ log = {
     // ...
     bullet = bullet.sub_bullet("Another verb");
     // ...
+    let timer = bullet.start_timer("Printing dots in the background");
+    // ...
+    bullet = timer.done();
     bullet.done()
 };
 log.done();
