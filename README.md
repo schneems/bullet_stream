@@ -73,8 +73,7 @@ The project has some unique requirements that might not be obvious at first glan
 The library design relies on a consuming struct design to guarantee output consistency. That means that you'll end up needing to assign the `bullet_stream` result just about every time you use it, for example:
 
 ```rust
-use bullet_stream::{Print, state::{Bullet, Header, SubBullet}};
-use std::io::Write;
+use bullet_stream::Print;
 
 let mut log = Print::new(std::io::stderr()).h1("Building Ruby");
 log = {
@@ -89,12 +88,58 @@ log = {
     // ...
     bullet = bullet.sub_bullet("Another verb");
     // ...
+    let timer = bullet.start_timer("Printing dots in the background");
+    // ...
+    bullet = timer.done();
     bullet.done()
 };
 log.done();
 ```
 
-### Push logic down, bubble information up
+### Generics
+
+Bullet stream works with anything that is `Write + Send + Sync + 'static,` but most people will use `std::io::Stdout` or `std::io::Stderr`. If you know a specific type you want to output to, you can simplify your method definitions.
+
+For example:
+
+```rust
+use bullet_stream::{
+    state::{Bullet, SubBullet},
+    Print,
+};
+use std::path::{Path, PathBuf};
+use std::io::Stdout;
+
+fn install_ruby(
+    mut output: Print<Bullet<Stdout>>,
+    path: &Path,
+) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
+{
+    todo!();
+}
+```
+
+If that's still too much typing for you, you can simplify more with type aliases:
+
+```rust
+use bullet_stream::{Print, state};
+use std::io::Stdout;
+use std::path::Path;
+
+pub(crate) type Header = Print<state::Header<Stdout>>;
+pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
+pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
+
+fn install_ruby(
+    mut output: Bullet,
+    path: &Path,
+) -> Result<SubBullet, std::io::Error>
+{
+    todo!();
+}
+```
+
+### Push logic down, bubble information (to output) up
 
 Any state you send to a function must be retrieved. There are examples in:
 
@@ -104,78 +149,78 @@ Any state you send to a function must be retrieved. There are examples in:
 - [`state::Stream`]
 - [`state::Background`]
 
-In general, we recommend breaking business logic down into functions. Rather than threading the logging state throughout every possible function, rely on functions to bubble up information to log.
-
-Here's an example of logging by passing the output state into functions:
-
-```rust
-// Example of logging by passing state into a function, not the cleanest
-// ❌😾❌
-
-use bullet_stream::{
-    state::{Bullet, Header, SubBullet},
-    Print,
-};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-
-let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
-
-output = install_ruby(&PathBuf::from("/dev/null"), output)
-    .unwrap()
-    .done();
-
-fn install_ruby<W>(
-    path: &Path,
-    mut output: Print<Bullet<W>>,
-) -> Result<Print<SubBullet<W>>, std::io::Error>
-where
-    W: Write + Send + Sync + 'static,
-{
-    let mut bullet = output.bullet("Ruby version").sub_bullet("Installing Ruby");
-    let contents = std::fs::read_to_string(path)?;
-
-    bullet = bullet.sub_bullet(format!("Version: {}", contents.trim()));
-
-    // ...
-    Ok(bullet)
-}
-```
-
-In the above example, the `install_ruby` function both performs logic and logs information, resulting in a very large function signature. If the function also needed to return information, it would need to use a tuple to return both the logger and the information.
-
-Here's an alternative where the all information needed to log is brought up to the same top-level, and the functions don't need to have massive type signatures:
+In general, we recommend pushing business logic down into functions. Rather than threading the logging state throughout every possible function, rely on functions to bubble up information to log. For example, this code reads version information from a file and logs it, while the logic function `install_ruby_version` does not need direct access to print any output:
 
 ```rust
 // Example of bubbling up information to the logger
 // ✅😸✅
+use bullet_stream::{Print, style};
 
-use bullet_stream::{
-    state::{Bullet, Header, SubBullet},
-    Print,
-};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-
-let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
-output = {
-    let mut bullet = output.bullet("Ruby version").sub_bullet("Installing Ruby");
-    let path = &PathBuf::from("/dev/null");
-    let contents = std::fs::read_to_string(path).unwrap();
-
-    bullet = bullet.sub_bullet(format!("Version: {}", contents.trim()));
-
-    install_ruby_version(contents).unwrap();
-    bullet.done()
-};
-
-fn install_ruby_version(version: String) -> Result<(), std::io::Error> {
+/// Smaller signature
+fn install_ruby_version(version: impl AsRef<str>) -> Result<(), std::io::Error> {
     // ...
     Ok(())
 }
+
+let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+
+// Bubble up data
+let version = std::fs::read_to_string(std::path::Path::new("/dev/null"))
+    .unwrap()
+    .trim()
+    .to_owned();
+
+// Output data
+let timer = output.bullet(format!("Ruby version {}", style::value(&version)))
+    .start_timer("Installing");
+
+// Call logic
+install_ruby_version(&version).unwrap();
+
+output = timer.done()
+    .done();
 ```
 
-It's not **bad** if you want to pass your output around to functions, but it is cumbersome.
+Here's the same general code, but using a function that accepts a print struct as it's input and then returns it via a tuple when it's done:
+
+```rust
+// Example of logging by passing state into a function, requires a large signature
+// ❌😾❌
+
+use bullet_stream::{
+    state::{Bullet, SubBullet},
+    Print, style
+};
+use std::io::Stdout;
+use std::path::Path;
+
+/// Large function signature, it works but might not always be needed
+fn install_ruby(
+    mut output: Print<Bullet<Stdout>>,
+    path: &Path,
+) -> Result<(Print<SubBullet<Stdout>>, String), std::io::Error>
+{
+    let version = std::fs::read_to_string(path)?
+        .trim()
+        .to_owned();
+
+    let timer = output.bullet(format!("Ruby version {}", style::value(&version)))
+        .start_timer("Installing");
+
+    // ...
+    Ok((timer.done(), version))
+}
+
+let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+
+let (bullet, version) = install_ruby(output, &Path::new("/dev/null"))
+    .unwrap();
+output = bullet.done();
+```
+
+In the above example, the `install_ruby` function both performs logic and logs information, resulting in a very large function signature. Both styles achieve the same outcome, so it's ultimately your preference. It's not **bad** if you want to pass your output around to functions, but it is cumbersome.
+
+For some operations like streaming the output of a `std::process::Command`
 
 ### Async support
 
@@ -229,46 +274,3 @@ In this example, the get and cached lines are logged within an async context. He
 In this example, the output states what it's going to do by listing the package source locations. After it downloads them, there's a synchronization point before it has enough information to output which archives were downloaded and their SHAs and begin processing them (again asynchronously).
 
 Alternatively, you could wrap a `SubBullet` state struct in an Arc and try passing it around, or use `bullet_stream` for top-level printing. Printing inside an async context could happen via `println`.
-
-### Generics
-
-Bullet stream works with anything that is `Write + Send + Sync + 'static,` but most people will use `std::io::Stdout` or `std::io::Stderr`. If you know a specific type you want to output to, you can simplify your method definitions.
-
-For example:
-
-```rust
-use bullet_stream::{
-    state::{Bullet, SubBullet},
-    Print,
-};
-use std::path::{Path, PathBuf};
-use std::io::Stdout;
-
-fn install_ruby(
-    path: &Path,
-    mut output: Print<Bullet<Stdout>>,
-) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
-{
-    todo!();
-}
-```
-
-If that's still too much typing for you, you can simplify more with type aliases:
-
-```rust
-use bullet_stream::{Print, state};
-use std::io::Stdout;
-use std::path::Path;
-
-pub(crate) type Header = Print<state::Header<Stdout>>;
-pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
-pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
-
-fn install_ruby(
-    path: &Path,
-    mut output: Bullet,
-) -> Result<SubBullet, std::io::Error>
-{
-    todo!();
-}
-```
