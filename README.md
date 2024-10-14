@@ -94,7 +94,7 @@ log = {
 log.done();
 ```
 
-### Push logic down, bubble information up
+### Push logic down, bubble information (to output) up
 
 Any state you send to a function must be retrieved. There are examples in:
 
@@ -104,9 +104,39 @@ Any state you send to a function must be retrieved. There are examples in:
 - [`state::Stream`]
 - [`state::Background`]
 
-In general, we recommend breaking business logic down into functions. Rather than threading the logging state throughout every possible function, rely on functions to bubble up information to log.
+In general, we recommend pushing business logic down into functions. Rather than threading the logging state throughout every possible function, rely on functions to bubble up information to log. For example, this code reads version information from a file and logs it, while the logic function `install_ruby_version` does not need direct access to print any output:
 
-Here's an example of logging by passing the output state into functions:
+```rust
+// Example of bubbling up information to the logger
+// ✅😸✅
+use bullet_stream::{Print, style};
+
+/// Smaller signature
+fn install_ruby_version(version: impl AsRef<str>) -> Result<(), std::io::Error> {
+    // ...
+    Ok(())
+}
+
+let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+
+// Bubble up data
+let version = std::fs::read_to_string(std::path::Path::new("/dev/null"))
+    .unwrap()
+    .trim()
+    .to_owned();
+
+// Output data
+let timer = output.bullet(format!("Ruby version {}", style::value(&version)))
+    .start_timer("Installing");
+
+// Call logic
+install_ruby_version(&version).unwrap();
+
+output = timer.done()
+    .done();
+```
+
+Here's the same general code, but using a function that accepts a print struct as it's input and then returns it via a tuple when it's done:
 
 ```rust
 // Example of logging by passing state into a function, requires a large signature
@@ -143,41 +173,9 @@ let (bullet, version) = install_ruby(output, &Path::new("/dev/null"))
 output = bullet.done();
 ```
 
-In the above example, the `install_ruby` function both performs logic and logs information, resulting in a very large function signature. If the function also needed to return information, it would need to use a tuple to return both the logger and the information.
+In the above example, the `install_ruby` function both performs logic and logs information, resulting in a very large function signature. Both styles achieve the same outcome, so it's ultimately your preference. It's not **bad** if you want to pass your output around to functions, but it is cumbersome.
 
-Here's an alternative where the all information needed to log is brought up to the same top-level, and the functions don't need to have massive type signatures:
-
-```rust
-// Example of bubbling up information to the logger
-// ✅😸✅
-use bullet_stream::{Print, style};
-
-/// Smaller signature
-fn install_ruby_version(version: impl AsRef<str>) -> Result<(), std::io::Error> {
-    // ...
-    Ok(())
-}
-
-let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
-
-// Bubble up data
-let version = std::fs::read_to_string(std::path::Path::new("/dev/null"))
-    .unwrap()
-    .trim()
-    .to_owned();
-
-// Output data
-let timer = output.bullet(format!("Ruby version {}", style::value(&version)))
-    .start_timer("Installing");
-
-// Call logic
-install_ruby_version(&version).unwrap();
-
-output = timer.done()
-    .done();
-```
-
-It's not **bad** if you want to pass your output around to functions, but it is cumbersome.
+For some operations like streaming the output of a `std::process::Command`
 
 ### Async support
 
