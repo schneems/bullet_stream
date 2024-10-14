@@ -38,21 +38,34 @@ fn main() {
             .sub_bullet("HELP: capitalize the first letter")
             .done();
 
+        log = log.bullet("Timer steps")
+            .sub_bullet("Long running code should execute with a timer to indicate the progam did not hang. Example:")
+            .start_timer("Background progress timer")
+            .done()
+            .sub_bullet("Timers will emit their execution time when done")
+            .sub_bullet("Timers can be canceled, with a reason:")
+            .start_timer("Background progress timer")
+            .cancel("Interrupted")
+            .done();
+
+        let mut sub_bullet = log
+            .bullet("Command execution")
+            .sub_bullet("Output can be streamed. Mostly from commands. Example:");
+
         let mut command = Command::new("bash");
         command.args(["-c", "ps aux | grep cargo"]);
-
-        let mut sub_bullet = log.bullet("Timer steps")
-        .sub_bullet("Long running code should execute with a timer to indicate the progam did not hang. Example:")
-        .start_timer("Background progress timer")
-        .done()
-        .sub_bullet("Output can be streamed. Mostly from commands. Example:");
-
         let _result = sub_bullet.stream_with(
             format!("Running {}", style::command(command.name())),
             |stdout, stderr| command.stream_output(stdout, stderr),
         );
+        log = sub_bullet.done();
 
-        let _ = sub_bullet.done();
+        let _ = log.bullet("Streaming versus timers")
+            .sub_bullet("Streaming commands is best when it's executing user provided code")
+            .sub_bullet(format!("Such as {} or {}", style::command("bundle install"), style::command("rake assets:precompile")))
+            .sub_bullet("Timers are best when the implementation detail is not important to the user and would otherwise be a distraction")
+            .done()
+            ;
     }
 
     {
