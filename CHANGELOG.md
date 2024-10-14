@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Expose `bullet_stream::strip_ansi` (https://github.com/schneems/bullet_stream/pull/10)
+## v0.3.0 - 2024/08/14
+
+- Added `bullet_stream::strip_ansi` (https://github.com/schneems/bullet_stream/pull/11)
 - Added `Print<Background<W>>::cancel()` to stop a timer with a message instead of emitting timing information (https://github.com/schneems/bullet_stream/pull/10)
 
 ## v0.2.0 - 2024/06/06

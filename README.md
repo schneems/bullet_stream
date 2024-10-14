@@ -40,7 +40,8 @@ output.done();
 To view the output format and read a living style guide, you can run:
 
 ```ignore
-$ git clone <repo-url>
+$ git clone https://github.com/schneems/bullet_stream
+$ cd bullet_stream
 $ cargo run --example style_guide
 ```
 

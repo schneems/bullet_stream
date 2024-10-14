@@ -10,15 +10,15 @@ use std::process::Command;
 #[allow(clippy::too_many_lines)]
 fn main() {
     {
-        let mut log = Print::new(stdout()).h1("Living build output style guide");
-        log = log.h2("Bullet section features");
-        log = log
+        let mut output = Print::new(stdout()).h1("Living build output style guide");
+        output = output.h2("Bullet section features");
+        output = output
             .bullet("Bullet example")
             .sub_bullet("sub bullet example one")
             .sub_bullet("sub bullet example two")
             .done();
 
-        log = log
+        output = output
             .bullet("Bullet section description")
             .sub_bullet(
                 "A section should be a noun i.e. 'Ruby Version', consider this the section topic.",
@@ -38,21 +38,34 @@ fn main() {
             .sub_bullet("HELP: capitalize the first letter")
             .done();
 
+        output = output.bullet("Timer steps")
+            .sub_bullet("Long running code should execute with a timer to indicate the progam did not hang. Example:")
+            .start_timer("Background progress timer")
+            .done()
+            .sub_bullet("Timers will emit their execution time when done")
+            .sub_bullet("Timers can be canceled, with a reason:")
+            .start_timer("Background progress timer")
+            .cancel("Interrupted")
+            .done();
+
+        let mut bullet = output
+            .bullet("Command execution")
+            .sub_bullet("Output can be streamed. Mostly from commands. Example:");
+
         let mut command = Command::new("bash");
         command.args(["-c", "ps aux | grep cargo"]);
-
-        let mut sub_bullet = log.bullet("Timer steps")
-        .sub_bullet("Long running code should execute with a timer to indicate the progam did not hang. Example:")
-        .start_timer("Background progress timer")
-        .done()
-        .sub_bullet("Output can be streamed. Mostly from commands. Example:");
-
-        let _result = sub_bullet.stream_with(
+        let _result = bullet.stream_with(
             format!("Running {}", style::command(command.name())),
             |stdout, stderr| command.stream_output(stdout, stderr),
         );
+        output = bullet.done();
 
-        let _ = sub_bullet.done();
+        let _ = output.bullet("Streaming versus timers")
+            .sub_bullet("Streaming commands is best when it's executing user provided code")
+            .sub_bullet(format!("Such as {} or {}", style::command("bundle install"), style::command("rake assets:precompile")))
+            .sub_bullet("Timers are best when the implementation detail is not important to the user and would otherwise be a distraction")
+            .done()
+            ;
     }
 
     {
@@ -60,18 +73,19 @@ fn main() {
         #[allow(clippy::unwrap_used)]
         let cmd_error = Command::new("iDoNotExist").named_output().err().unwrap();
 
-        let mut log = Print::new(stdout()).h2("Error and warnings");
-        log = log
+        let mut output = Print::new(stdout()).h2("Error and warnings");
+        output = output
             .bullet("Debug information")
             .sub_bullet("Should go above errors in section/step format")
             .done();
 
-        log = log
+        output = output
             .bullet(style::important("DEBUG INFO:"))
             .sub_bullet(cmd_error.to_string())
             .done();
 
-        log.warning(formatdoc! {"
+        output
+            .warning(formatdoc! {"
                 Warning: This is a warning header
 
                 This is a warning body. Warnings are for when we know for a fact a problem exists
@@ -100,9 +114,9 @@ fn main() {
     }
 
     {
-        let log = Print::new(stdout()).h2("Formatting helpers");
-        let mut stream = log
-            .bullet("The fmt module")
+        let output = Print::new(stdout()).h2("Formatting helpers");
+        let mut stream = output
+            .bullet(format!("The {} module", style::value("style")))
             .start_stream("Formatting helpers can be used to enhance log output:");
 
         let mut table = AsciiTable::default();

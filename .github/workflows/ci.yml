@@ -55,3 +55,17 @@ jobs:
         uses: Swatinem/rust-cache@v2.7.1
       - name: Run unit tests
         run: cargo test --all-features
+
+  print-style-guide:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Update Rust toolchain
+        # Most of the time this will be a no-op, since GitHub releases new images every week
+        # which include the latest stable release of Rust, Rustup, Clippy and rustfmt.
+        run: rustup update
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.1
+      - name: Print style guide
+        run: cargo run --example style_guide
